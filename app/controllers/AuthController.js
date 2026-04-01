@@ -33,7 +33,15 @@ module.exports = {
   // ----------------------------------------------------------
   // POST /api/auth/register
   // ----------------------------------------------------------
-  register: (_req, res) => {
-    res.status(501).json({ error: "Non implémenté — TODO exercice 7" });
+  register: (req, res) => {
+    const { username, address, email, password } = req.body;
+    const query =
+      "INSERT INTO users (username, address, email, password) VALUES (?, ?, ?, ?)";
+
+    db.query(query, [username, address, email, password], (err) => {
+      if (err) return res.status(500).send(err.message);
+
+      res.json({ message: "Utilisateur créé !" });
+    });
   },
 };
