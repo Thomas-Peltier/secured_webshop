@@ -1,6 +1,7 @@
 const db = require("../config/db");
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
+const peper = "GZG4g78FUFü!EU%UIHIFU";
 
 module.exports = {
   login: (req, res) => {
@@ -19,8 +20,9 @@ module.exports = {
 
       const user = results[0];
 
-      //on compare le mdp saisi avec le hash en db
-      const match = await bcrypt.compare(password, user.password);
+      //on compare le mdp saisi avec le hash (mdp + sel + poivre) en db
+      const pwdWithPeper = password + peper;
+      const match = await bcrypt.compare(pwdWithPeper, user.password);
 
       if (match) {
         res.json({ message: "Connexion réussie" });
@@ -36,8 +38,9 @@ module.exports = {
   register: async (req, res) => {
     const { username, address, email, password } = req.body;
 
-    //on hash le mot de passe avant de le insert
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    //on hash le mot de passe + le peper avant de le insert
+    const pwdWithPeper = password + peper;
+    const hashedPassword = await bcrypt.hash(pwdWithPeper, saltRounds);
 
     const query =
       "INSERT INTO users (username, address, email, password) VALUES (?, ?, ?, ?)";
