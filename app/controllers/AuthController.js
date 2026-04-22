@@ -29,7 +29,7 @@ module.exports = {
           { id: user.id, email: user.email, role: user.role },
           process.env.JWT_SECRET,
           {
-            expiresIn: "1h",
+            expiresIn: "10m",
           },
         );
         res.json({ message: "Connexion réussie", token: token });
