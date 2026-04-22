@@ -13,7 +13,7 @@
       <section class="hero">
         <div class="container">
           <h1>Connexion</h1>
-          <form action="/api/auth/login" method="post">
+          <form id="loginForm">
             <ul>
               <label for="email">E-mail :</label>
               <input type="text" id="email" name="email" required />
@@ -22,6 +22,7 @@
             </ul>
             <button type="submit">Envoyer</button>
           </form>
+          <p id="message" style="color: red; margin-top: 10px"></p>
         </div>
       </section>
     </main>
@@ -33,5 +34,39 @@
     </footer>
 
     <script src="/js/nav.js"></script>
+
+    <script>
+      const loginForm = document.getElementById("loginForm");
+      const messageElement = document.getElementById("message");
+
+      loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("mdp").value;
+
+        try {
+          const response = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.token) {
+            localStorage.setItem("token", data.token);
+
+            window.location.href = "/";
+          } else {
+            messageElement.textContent =
+              data.error || "Identifiants incorrects";
+          }
+        } catch (error) {
+          console.error("Erreur login:", error);
+          messageElement.textContent = "Erreur de connexion au serveur";
+        }
+      });
+    </script>
   </body>
 </html>
