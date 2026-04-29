@@ -25,14 +25,28 @@ module.exports = {
       const match = await bcrypt.compare(pwdPeper, user.password);
 
       if (match) {
-        const token = jwt.sign(
-          { id: user.id, email: user.email, role: user.role },
-          process.env.JWT_SECRET,
-          {
-            expiresIn: "10m",
-          },
+        const payload = { id: user.id, email: user.email, role: user.role };
+
+        const token = jwt.sign(payload, process.env.JWT_SECRET, {
+          expiresIn: "10s",
+        });
+
+        const refreshToken = jwt.sign(
+          payload,
+          process.env.REFRESH_TOKEN_SECRET,
+          { expiresIn: "7d" },
         );
-        res.json({ message: "Connexion réussie", token: token });
+
+        const updateQuery = "UPDATE users SET refresh_token = ? WHERE id = ?";
+        db.query(updateQuery, [refreshToken, user.id], (updErr) => {
+          if (updErr) return res.status(500).json({ error: updErr.message });
+
+          res.json({
+            message: "Connexion réussie",
+            token: token,
+            refreshToken: refreshToken,
+          });
+        });
       } else {
         res.status(401).json({ error: "Email ou mot de passe incorrect" });
       }
@@ -42,6 +56,37 @@ module.exports = {
   // ----------------------------------------------------------
   // POST /api/auth/register
   // ----------------------------------------------------------
+  refresh: (req, res) => {
+    const { refreshToken } = req.body;
+    if (!refreshToken)
+      return res.status(401).json({ error: "Refresh token requis" });
+
+    const query = "SELECT * FROM users WHERE refresh_token = ?";
+    db.query(query, [refreshToken], (err, results) => {
+      if (err || results.length === 0)
+        return res.status(403).json({ error: "Token invalide" });
+
+      const user = results[0];
+
+      jwt.verify(
+        refreshToken,
+        process.env.REFRESH_TOKEN_SECRET,
+        (verifErr, decoded) => {
+          if (verifErr)
+            return res.status(403).json({ error: "Token expiré ou corrompu" });
+
+          const newToken = jwt.sign(
+            { id: user.id, email: user.email, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: "10m" },
+          );
+
+          res.json({ token: newToken });
+        },
+      );
+    });
+  },
+
   register: async (req, res) => {
     const { username, address, email, password } = req.body;
 

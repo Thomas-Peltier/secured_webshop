@@ -57,6 +57,10 @@
           if (response.ok && data.token) {
             localStorage.setItem("token", data.token);
 
+            if (data.refreshToken) {
+              localStorage.setItem("refreshToken", data.refreshToken);
+            }
+
             window.location.href = "/";
           } else {
             messageElement.textContent =

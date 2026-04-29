@@ -79,27 +79,44 @@
 
     <script src="/js/nav.js"></script>
     <script>
+      async function authorizedFetch(url, options = {}) {
+        let token = localStorage.getItem("token");
+
+        options.headers = {
+          ...options.headers,
+          Authorization: `Bearer ${token}`,
+        };
+
+        let res = await fetch(url, options);
+
+        if (res.status === 401) {
+          const refreshToken = localStorage.getItem("refreshToken");
+          if (refreshToken) {
+            const refreshRes = await fetch("/api/auth/refresh", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ refreshToken }),
+            });
+
+            if (refreshRes.ok) {
+              const data = await refreshRes.json();
+              localStorage.setItem("token", data.token);
+
+              options.headers["Authorization"] = `Bearer ${data.token}`;
+              return fetch(url, options);
+            }
+          }
+        }
+        return res;
+      }
       // ------------------------------------------------------------------
       // Chargement du profil au démarrage
       // ------------------------------------------------------------------
       async function loadProfile() {
-        const token = localStorage.getItem("token");
-
-        const res = await fetch("/api/profile", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!res.ok) {
-          console.error("Erreur de chargement, statut :", res.status);
-          return;
-        }
+        const res = await authorizedFetch("/api/profile");
+        if (!res.ok) return;
 
         const user = await res.json();
-
         document.getElementById("username").textContent = user.username;
         document.getElementById("email").textContent = user.email;
         document.getElementById("role").textContent = user.role;
@@ -119,20 +136,15 @@
         .addEventListener("submit", async (e) => {
           e.preventDefault();
           const address = document.getElementById("address").value;
-          const token = localStorage.getItem("token");
 
-          const res = await fetch("/api/profile", {
+          const res = await authorizedFetch("/api/profile", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ address }),
           });
 
           const data = await res.json();
           showMessage(res.ok ? "success" : "error", data.message || data.error);
-          if (res.ok) loadProfile();
         });
 
       // ------------------------------------------------------------------
@@ -142,24 +154,26 @@
         .getElementById("photo-form")
         .addEventListener("submit", async (e) => {
           e.preventDefault();
+
           const file = document.getElementById("photo").files[0];
           if (!file) return showMessage("error", "Aucun fichier sélectionné");
 
-          const token = localStorage.getItem("token");
           const formData = new FormData();
           formData.append("photo", file);
 
-          const res = await fetch("/api/profile/photo", {
+          const res = await authorizedFetch("/api/profile/photo", {
             method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
             body: formData,
           });
 
           const data = await res.json();
-          showMessage(res.ok ? "success" : "error", data.message || data.error);
-          if (res.ok) loadProfile();
+
+          if (res.ok) {
+            showMessage("success", data.message || "Photo mise à jour !");
+            loadProfile();
+          } else {
+            showMessage("error", data.error || "Erreur lors de l'envoi");
+          }
         });
 
       function showMessage(type, text) {

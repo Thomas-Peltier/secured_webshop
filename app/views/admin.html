@@ -48,48 +48,74 @@
 
     <script src="/js/nav.js"></script>
     <script>
-      const token = localStorage.getItem("token");
+      async function loadUsers() {
+        let token = localStorage.getItem("token");
+        const tbody = document.getElementById("user-table-body");
 
-      fetch("/api/admin/users", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      })
-        .then((r) => {
-          if (!r.ok) {
-            throw new Error("Accès refusé ou non autorisé");
+        async function fetchData() {
+          return fetch("/api/admin/users", {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          });
+        }
+
+        let response = await fetchData();
+
+        if (response.status === 401) {
+          const refreshToken = localStorage.getItem("refreshToken");
+
+          if (refreshToken) {
+            const refreshRes = await fetch("/api/auth/refresh", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ refreshToken }),
+            });
+
+            if (refreshRes.ok) {
+              const data = await refreshRes.json();
+              localStorage.setItem("token", data.token);
+              token = data.token;
+              response = await fetchData();
+            }
           }
-          return r.json();
-        })
-        .then((users) => {
-          const tbody = document.getElementById("user-table-body");
+        }
 
-          if (!Array.isArray(users)) {
-            tbody.innerHTML = `<tr><td colspan="5">Accès refusé : ${users.error || "Erreur"}</td></tr>`;
-            return;
-          }
+        if (!response.ok) {
+          tbody.innerHTML =
+            '<tr><td colspan="5" style="color: red;">Erreur : Session expirée ou accès réservé.</td></tr>';
+          return;
+        }
 
-          tbody.innerHTML = users
-            .map(
-              (u) => `
-            <tr>
-              <td>${u.id}</td>
-              <td>${u.username}</td>
-              <td>${u.email}</td>
-              <td><span class="badge-${u.role}">${u.role}</span></td>
-              <td>${u.address || "-"}</td>
-            </tr>
-          `,
-            )
-            .join("");
-        })
-        .catch((err) => {
-          console.error("Erreur de fetch:", err);
-          document.getElementById("user-table-body").innerHTML =
-            '<tr><td colspan="5" style="color: red;">Erreur : Accès réservé aux administrateurs.</td></tr>';
-        });
+        const users = await response.json();
+
+        if (!Array.isArray(users)) {
+          tbody.innerHTML = `<tr><td colspan="5">Erreur : ${users.error || "Format invalide"}</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = users
+          .map(
+            (u) => `
+        <tr>
+          <td>${u.id}</td>
+          <td>${u.username}</td>
+          <td>${u.email}</td>
+          <td><span class="badge-${u.role}">${u.role}</span></td>
+          <td>${u.address || "-"}</td>
+        </tr>
+      `,
+          )
+          .join("");
+      }
+
+      loadUsers().catch((err) => {
+        console.error(err);
+        document.getElementById("user-table-body").innerHTML =
+          '<tr><td colspan="5">Erreur de connexion.</td></tr>';
+      });
     </script>
   </body>
 </html>
