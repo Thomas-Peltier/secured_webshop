@@ -16,14 +16,26 @@
 
           <form action="/api/auth/register" method="post">
             <ul>
-              <label for="email">Nom :</label>
-              <input type="text" id="username" name="username" required />
-              <label for="email">Address :</label>
-              <input type="text" id="address" name="address" required />
-              <label for="email">E-mail :</label>
-              <input type="text" id="email" name="email" required />
-              <label for="mdp">Mot de passe :</label>
-              <input type="password" id="mdp" name="password" required />
+              <li>
+                <label for="username">Nom :</label>
+                <input type="text" id="username" name="username" required />
+              </li>
+              <li>
+                <label for="address">Adresse :</label>
+                <input type="text" id="address" name="address" required />
+              </li>
+              <li>
+                <label for="email">E-mail :</label>
+                <input type="email" id="email" name="email" required />
+              </li>
+              <li>
+                <label for="mdp">Mot de passe :</label>
+                <input type="password" id="mdp" name="password" required />
+                <div id="strength-container">
+                  <div id="strength-bar"></div>
+                </div>
+                <span id="strength-text">Force du mot de passe</span>
+              </li>
             </ul>
             <button type="submit">Envoyer</button>
           </form>
@@ -38,5 +50,36 @@
     </footer>
 
     <script src="/js/nav.js"></script>
+    <script>
+      const passwordInput = document.getElementById("mdp");
+      const strengthBar = document.getElementById("strength-bar");
+      const strengthText = document.getElementById("strength-text");
+
+      passwordInput.addEventListener("input", () => {
+        const val = passwordInput.value;
+        let score = 0;
+
+        if (val.length >= 8) score++;
+        if (/[A-Z]/.test(val)) score++;
+        if (/[a-z]/.test(val)) score++;
+        if (/[0-9]/.test(val)) score++;
+        if (/[^A-Za-z0-9]/.test(val)) score++;
+
+        const result = [
+          { width: "0%", color: "#ddd", label: "Trop court" },
+          { width: "20%", color: "#ff4d4d", label: "Très faible" },
+          { width: "40%", color: "#ffad33", label: "Faible" },
+          { width: "60%", color: "#ffff66", label: "Moyen" },
+          { width: "80%", color: "#99ff66", label: "Fort" },
+          { width: "100%", color: "#00cc00", label: "Très fort" },
+        ][score];
+
+        strengthBar.style.width = result.width;
+        strengthBar.style.backgroundColor = result.color;
+        strengthText.textContent = `Force : ${result.label}`;
+        strengthText.style.color =
+          result.color === "#ffff66" ? "#666" : result.color;
+      });
+    </script>
   </body>
 </html>
