@@ -5,8 +5,18 @@ const https = require("https");
 require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") });
 
 const express = require("express");
+const rateLimit = require("express-rate-limit");
 
 const app = express();
+
+const loginLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 5,
+  message: { error: "Trop de tentatives. Réessayez dans une minute." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Middleware pour parser le corps des requêtes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -19,7 +29,7 @@ const authRoute = require("./routes/Auth");
 const profileRoute = require("./routes/Profile");
 const adminRoute = require("./routes/Admin");
 
-app.use("/api/auth", authRoute);
+app.use("/api/auth", loginLimiter, authRoute);
 app.use("/api/profile", profileRoute);
 app.use("/api/admin", adminRoute);
 // ---------------------------------------------------------------
