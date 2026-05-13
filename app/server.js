@@ -54,8 +54,6 @@ app.get("/admin", (_req, res) =>
   res.sendFile(path.join(__dirname, "views", "admin.html")),
 );
 
-app.get("/test", (_req, res) => res.send("db admin: root, pwd : root"));
-
 app.use((err, _req, res, _next) => {
   console.error("Server error:", err);
   res.status(500).json({ error: "Erreur serveur" });
