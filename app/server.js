@@ -56,6 +56,11 @@ app.get("/admin", (_req, res) =>
 
 app.get("/test", (_req, res) => res.send("db admin: root, pwd : root"));
 
+app.use((err, _req, res, _next) => {
+  console.error("Server error:", err);
+  res.status(500).json({ error: "Erreur serveur" });
+});
+
 const sslOptions = {
   key: fs.readFileSync(path.join(__dirname, "localhost+1-key.pem")),
   cert: fs.readFileSync(path.join(__dirname, "localhost+1.pem")),
